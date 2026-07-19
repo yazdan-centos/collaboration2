@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import slaContractService from '../services/slaContractService';
+import { getApiErrorMessage } from '../utils/apiError';
 
 function normalizeContracts(response) {
   if (Array.isArray(response)) return response;
@@ -38,13 +40,13 @@ function formatDate(value) {
 }
 
 function loadErrorMessage(error) {
-  const status = error?.response?.status ?? error?.status;
-  if (status === 401) return 'برای مشاهده قراردادها باید وارد حساب کاربری شوید.';
-  if (status === 403) return 'حساب شما اجازه مشاهده قراردادهای SLA را ندارد.';
-  return 'دریافت قراردادهای SLA با خطا مواجه شد.';
+  return getApiErrorMessage(error, 'دریافت قراردادهای SLA با خطا مواجه شد.', {
+    403: 'حساب شما اجازه مشاهده قراردادهای SLA را ندارد.',
+  });
 }
 
 export default function SlaContractsPage() {
+  const navigate = useNavigate();
   const [contracts, setContracts] = useState([]);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -153,7 +155,7 @@ export default function SlaContractsPage() {
         ) : filteredContracts.length ? (
           <div className={`sla-table-wrap${isLoading ? ' loading' : ''}`}>
             <table className="task-table sla-table">
-              <thead><tr><th>شناسه</th><th>قرارداد</th><th>مشتری</th><th>زمان پاسخ</th><th>وضعیت</th><th>آخرین به‌روزرسانی</th></tr></thead>
+              <thead><tr><th>شناسه</th><th>قرارداد</th><th>مشتری</th><th>زمان پاسخ</th><th>وضعیت</th><th>آخرین به‌روزرسانی</th><th>عملیات</th></tr></thead>
               <tbody>{filteredContracts.map((contract) => {
                 const active = isContractActive(contract);
                 const hours = responseHours(contract);
@@ -165,6 +167,11 @@ export default function SlaContractsPage() {
                     <td><span className="sla-response-time fa-num">{hours ?? '—'}{hours !== undefined && hours !== null ? ' ساعت' : ''}</span></td>
                     <td><span className={`sla-status ${active ? 'active' : 'inactive'}`}><span className="dot" />{active ? 'فعال' : 'غیرفعال'}</span></td>
                     <td className="ticket-date fa-num">{formatDate(contract.updatedAt || contract.createdAt)}</td>
+                    <td>
+                      <button type="button" className="filter-btn sla-edit-btn" onClick={() => navigate(`/sla-contracts/${contract.id}/edit`)}>
+                        <i className="fas fa-pen" aria-hidden="true" /> ویرایش
+                      </button>
+                    </td>
                   </tr>
                 );
               })}</tbody>

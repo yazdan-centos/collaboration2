@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import teamMemberService from '../../services/teamMemberService';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 function getLoginError(error) {
-  if (!error.response) return 'ارتباط با سرور برقرار نشد. دوباره تلاش کنید.';
-  if (error.response.status === 401) return 'نام کاربری یا رمز عبور نادرست است.';
-  if (error.response.status === 403) return 'حساب شما اجازه ورود به این بخش را ندارد.';
-  return error.response.data?.message || 'ورود انجام نشد. دوباره تلاش کنید.';
+  return getApiErrorMessage(error, 'ورود انجام نشد. دوباره تلاش کنید.', {
+    400: 'اطلاعات ورود معتبر نیست.',
+    401: 'نام کاربری یا رمز عبور نادرست است.',
+    403: 'حساب شما اجازه ورود به این بخش را ندارد.',
+  });
 }
 
 export default function Login() {
@@ -15,12 +17,12 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const { isAuthenticated, login } = useAuth();
+  const { isAuthenticated, login, auth } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   if (isAuthenticated) {
-    return <Navigate to="/team" replace />;
+    return <Navigate to="/tickets" replace />;
   }
 
   async function handleSubmit(event) {
@@ -36,7 +38,8 @@ export default function Login() {
     try {
       const loginResponse = await teamMemberService.login(normalizedIdentifier, password);
       login(loginResponse);
-      navigate(location.state?.from?.pathname || '/team', { replace: true });
+      const destination = location.state?.from?.pathname;
+      navigate(destination && destination !== '/login' ? destination : '/tickets', { replace: true });
     } catch (requestError) {
       setError(getLoginError(requestError));
     } finally {

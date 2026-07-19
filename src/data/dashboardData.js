@@ -173,7 +173,7 @@ export const navSections = [
     { icon: 'fas fa-diagram-project', label: 'پروژه‌ها', path: '/projects' },
     { icon: 'fas fa-file-contract', label: 'قراردادهای SLA', path: '/sla-contracts' },
     { icon: 'fas fa-calendar-days', label: 'تقویم', path: '/calendar' },
-    { icon: 'fas fa-chart-column', label: 'گزارش‌ها', path: '/reports' },
+    { icon: 'fas fa-chart-column', label: 'چتروم تیکت', path: '/reports' },
   ]
 }
 ,

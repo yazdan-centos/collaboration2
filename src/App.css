@@ -992,6 +992,287 @@ body {
   }
 }
 
+/* صفحه مشتریان */
+.client-page {
+  padding: 24px 28px 28px;
+}
+
+.client-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.client-stats-grid .stat-card {
+  padding: 18px 20px;
+}
+
+.client-stats-grid .stat-header {
+  float: left;
+  margin: 0;
+}
+
+.client-directory,
+.client-directory-header {
+  min-width: 0;
+}
+
+.client-directory-header {
+  gap: 18px;
+}
+
+.client-toolbar {
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.client-toolbar select {
+  min-width: 125px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: none;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.primary-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s;
+  white-space: nowrap;
+}
+
+.primary-action-btn:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.primary-action-btn:disabled,
+.filter-btn:disabled,
+.icon-action-btn:disabled,
+.client-delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.client-table-wrap {
+  overflow-x: auto;
+  transition: opacity 0.2s;
+}
+
+.client-table-wrap.loading {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.client-table {
+  min-width: 1020px;
+}
+
+.client-table tbody tr {
+  cursor: default;
+}
+
+.client-identity,
+.client-row-actions,
+.client-action-alert {
+  display: flex;
+  align-items: center;
+}
+
+.client-identity {
+  gap: 10px;
+}
+
+.client-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), #059669);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.client-contact {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.client-contact span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.client-contact i {
+  color: var(--text-muted);
+}
+
+.client-contract-count {
+  padding: 5px 9px;
+  border-radius: 7px;
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.client-row-actions {
+  gap: 7px;
+}
+
+.client-delete-btn,
+.icon-action-btn,
+.client-action-alert button {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.client-delete-btn,
+.icon-action-btn {
+  width: 32px;
+  height: 32px;
+}
+
+.client-delete-btn {
+  color: var(--danger);
+}
+
+.client-delete-btn:hover {
+  border-color: var(--danger);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.client-action-alert {
+  gap: 9px;
+  margin: 14px 16px 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 9px;
+  background: rgba(239, 68, 68, 0.08);
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.client-action-alert span {
+  flex: 1;
+}
+
+.client-action-alert button {
+  border: none;
+  color: inherit;
+}
+
+.client-form-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  padding: 24px;
+  background: rgba(4, 10, 24, 0.66);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.client-form-panel {
+  width: min(760px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.32);
+}
+
+.client-form-header {
+  gap: 16px;
+}
+
+.client-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding: 22px;
+}
+
+.client-form-wide {
+  grid-column: 1 / -1;
+}
+
+.client-field-error {
+  color: var(--danger);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+@media (max-width: 1200px) {
+  .client-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 960px) {
+  .client-directory-header,
+  .client-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .client-toolbar,
+  .client-toolbar .team-search,
+  .client-toolbar select,
+  .client-toolbar .filter-btn,
+  .client-toolbar .primary-action-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .client-page {
+    padding: 18px 16px 24px;
+  }
+  .client-stats-grid,
+  .client-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .client-form-wide {
+    grid-column: auto;
+  }
+  .client-form-backdrop {
+    padding: 12px;
+  }
+  .client-form-grid {
+    padding: 18px;
+  }
+}
+
 /* صفحه تیکت‌ها */
 .ticket-page {
   padding: 24px 28px 28px;
@@ -1624,6 +1905,87 @@ body {
   cursor: default;
 }
 
+.sla-edit-btn {
+  white-space: nowrap;
+}
+
+.sla-edit-panel {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.sla-edit-header {
+  gap: 16px;
+}
+
+.sla-edit-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  padding: 22px;
+}
+
+.sla-form-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sla-form-field input,
+.sla-form-field select,
+.sla-form-field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  outline: none;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: 400;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.sla-form-field textarea {
+  resize: vertical;
+}
+
+.sla-form-field input:focus,
+.sla-form-field select:focus,
+.sla-form-field textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.sla-form-wide,
+.sla-form-alert {
+  grid-column: 1 / -1;
+}
+
+.sla-form-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 9px;
+  background: rgba(239, 68, 68, 0.08);
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.sla-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 22px;
+  border-top: 1px solid var(--border);
+}
+
 .sla-customer {
   display: flex;
   align-items: center;
@@ -1695,6 +2057,18 @@ body {
   }
   .sla-stats-grid {
     grid-template-columns: 1fr;
+  }
+  .sla-edit-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .sla-edit-form {
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+  .sla-form-wide,
+  .sla-form-alert {
+    grid-column: auto;
   }
 }
 
@@ -2195,6 +2569,108 @@ body {
   padding: 16px 8px;
   background: var(--bg-secondary);
   border-radius: 8px;
+}
+
+/* صفحه تیکت مشتری */
+.customer-ticket-page {
+  padding: 24px 28px 28px;
+}
+
+.customer-ticket-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.customer-ticket-stats .stat-card {
+  padding: 18px 20px;
+}
+
+.customer-ticket-stats .stat-header {
+  float: left;
+  margin: 0;
+}
+
+.ticket-modal-panel {
+  width: min(900px, 100%);
+}
+
+.ticket-modal-body {
+  min-height: 120px;
+}
+
+.ticket-modal-view {
+  padding: 20px 22px 22px;
+}
+
+.ticket-modal-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ticket-modal-title {
+  margin: 0 0 14px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.ticket-modal-description {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1.9;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ticket-modal-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 18px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.ticket-modal-dates span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ticket-modal-dates i {
+  color: var(--accent);
+}
+
+.ticket-modal-section + .ticket-modal-section {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 1200px) {
+  .customer-ticket-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .customer-ticket-page {
+    padding: 18px 16px 24px;
+  }
+  .customer-ticket-stats {
+    grid-template-columns: 1fr;
+  }
+  .customer-ticket-stats .stat-header {
+    float: none;
+  }
 }
 
 @media (max-width: 1200px) {

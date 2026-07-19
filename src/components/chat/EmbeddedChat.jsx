@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useAuth } from '../../context/AuthContext'; // adjust path to match your project
-import { fetchMessages, postMessage, subscribeToTyping } from '../../services/chatService';
+import { useAuth } from '../../context/AuthContext';
+import { fetchMessages, postMessage } from '../../services/chatService';
 import MessageBubble from './MessageBubble';
 import ChatInput from './ChatInput';
-import TypingIndicator from './TypingIndicator';
+import { getApiErrorMessage, getValidationMessage } from '../../utils/apiError';
 
 const EmptyIcon = () => (
   <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -32,106 +32,95 @@ const ErrorIcon = () => (
 /**
  * EmbeddedChat
  *
- * Drop-in chatroom component. Fetches history for `roomId`, lets the
+ * Ticket message thread. Fetches history for `ticketId`, lets the
  * current authenticated user send new messages, and keeps the view
  * pinned to the latest message.
  *
  * Props:
- * - roomId (string, required): conversation/room identifier used to scope API calls.
- * - receiverId (string, optional): the other participant's id, useful for 1:1 rooms
- *   or for labeling ("Chat with ..."), and for backends that key by receiver rather than room.
+ * - ticketId (number|string, required): ticket identifier used by the ticket API.
  * - title (string, optional): header label. Defaults to "Chat".
  * - height (string, optional): CSS height for the container. Defaults to "560px".
  * - className (string, optional): extra classes for the outer wrapper.
  */
-export default function EmbeddedChat({ roomId, receiverId, title = 'Chat', height = '560px', className = '' }) {
-  const { user } = useAuth();
+export default function EmbeddedChat({
+  ticketId,
+  title = 'گفتگوی تیکت',
+  height = '560px',
+  className = '',
+  onMessageCreated,
+  canSend = true,
+}) {
+  const { currentUser, role, roles } = useAuth();
 
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
+  const [sendError, setSendError] = useState(null);
   const [inputValue, setInputValue] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const [typingUserName, setTypingUserName] = useState(null);
-
   const scrollAnchorRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
+  const currentUserId = currentUser?.id ?? currentUser?.userId ?? null;
+  const currentUserName = typeof currentUser === 'string'
+    ? currentUser
+    : currentUser?.name ?? currentUser?.fullName ?? currentUser?.username ?? '';
+
   /* -------------------------- Load history -------------------------- */
 
-  const loadMessages = useCallback(async () => {
+  const loadMessages = useCallback(async (options = {}) => {
     setIsLoading(true);
     setLoadError(null);
+    setSendError(null);
     try {
-      const data = await fetchMessages(roomId);
+      if (!ticketId) {
+        setMessages([]);
+        setLoadError('برای نمایش گفتگو ابتدا یک تیکت را انتخاب کنید.');
+        return;
+      }
+      const data = await fetchMessages(ticketId, options);
       setMessages(data);
     } catch (err) {
-      setLoadError('بارگذاری پیام‌ها با خطا مواجه شد. لطفا دوباره تلاش کنید.');
+      if (err?.code !== 'ERR_CANCELED') {
+        setLoadError(getMessageError(err, 'بارگذاری پیام‌ها با خطا مواجه شد. لطفا دوباره تلاش کنید.'));
+      }
     } finally {
-      setIsLoading(false);
+      if (!options.signal?.aborted) setIsLoading(false);
     }
-  }, [roomId]);
+  }, [ticketId]);
 
   useEffect(() => {
-    if (!roomId) return;
-    loadMessages();
-  }, [roomId, loadMessages]);
-
-  /* --------------------- Typing indicator (mocked) -------------------- */
-
-  useEffect(() => {
-    if (!roomId) return undefined;
-    const unsubscribe = subscribeToTyping(roomId, (payload) => {
-      setTypingUserName(payload?.userName ?? null);
-    });
-    return unsubscribe;
-  }, [roomId]);
+    const controller = new AbortController();
+    loadMessages({ signal: controller.signal });
+    return () => controller.abort();
+  }, [ticketId, loadMessages]);
 
   /* ----------------------------- Autoscroll ---------------------------- */
 
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [messages, typingUserName]);
+  }, [messages]);
 
   /* ------------------------------ Sending ------------------------------ */
 
   const handleSend = useCallback(
     async (content) => {
-      if (!user) return;
-
-      const optimisticMessage = {
-        id: `temp-${Date.now()}`,
-        roomId,
-        senderId: user.id,
-        senderName: user.name,
-        senderAvatar: user.avatar ?? null,
-        content,
-        createdAt: new Date().toISOString(),
-        pending: true,
-      };
-
-      setMessages((prev) => [...prev, optimisticMessage]);
-      setInputValue('');
+      if (!ticketId) return;
       setIsSending(true);
+      setSendError(null);
 
       try {
-        const saved = await postMessage(roomId, {
-          content,
-          senderId: user.id,
-          senderName: user.name,
-          senderAvatar: user.avatar ?? null,
-        });
-        setMessages((prev) => prev.map((m) => (m.id === optimisticMessage.id ? saved : m)));
+        const saved = await postMessage(ticketId, { content }, { role: roles?.length ? roles : role });
+        setMessages((previous) => [...previous, saved]);
+        setInputValue('');
+        onMessageCreated?.(saved);
       } catch (err) {
-        // Mark the optimistic message as failed rather than silently dropping it
-        setMessages((prev) =>
-          prev.map((m) => (m.id === optimisticMessage.id ? { ...m, pending: false, failed: true } : m))
-        );
+        setSendError(getMessageError(err, 'ارسال پیام با خطا مواجه شد. لطفا دوباره تلاش کنید.'));
       } finally {
         setIsSending(false);
       }
     },
-    [roomId, user]
+    [onMessageCreated, role, roles, ticketId]
   );
 
   /* ------------------------------- Render ------------------------------- */
@@ -150,9 +139,9 @@ export default function EmbeddedChat({ roomId, receiverId, title = 'Chat', heigh
           <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
             {title}
           </h3>
-          {receiverId && (
+          {ticketId && (
             <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-              گفتگو با کاربر #{receiverId}
+              تیکت #{ticketId}
             </p>
           )}
         </div>
@@ -162,31 +151,47 @@ export default function EmbeddedChat({ roomId, receiverId, title = 'Chat', heigh
       <div ref={messagesContainerRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {isLoading && <LoadingState />}
 
-        {!isLoading && loadError && <ErrorState message={loadError} onRetry={loadMessages} />}
+        {!isLoading && loadError && <ErrorState message={loadError} onRetry={() => loadMessages()} />}
 
         {!isLoading && !loadError && messages.length === 0 && <EmptyState />}
 
         {!isLoading &&
           !loadError &&
           messages.map((message) => (
-            <MessageBubble key={message.id} message={message} isOwnMessage={message.senderId === user?.id} />
+            <MessageBubble
+              key={message.id}
+              message={message}
+              isOwnMessage={(currentUserId != null && String(message.senderId) === String(currentUserId))
+                || (!currentUserId && currentUserName && message.senderName === currentUserName)}
+            />
           ))}
-
-        {!isLoading && !loadError && <TypingIndicator typingUserName={typingUserName} />}
 
         <div ref={scrollAnchorRef} />
       </div>
 
       {/* Input */}
-      <ChatInput
+      {sendError && (
+        <div className="px-4 py-2 text-xs" style={{ color: 'var(--danger)' }} role="alert">
+          {sendError}
+        </div>
+      )}
+      {canSend ? <ChatInput
         value={inputValue}
         onChange={setInputValue}
         onSubmit={handleSend}
         isSending={isSending}
-        disabled={!user || isLoading || !!loadError}
-      />
+        disabled={!ticketId || isLoading || !!loadError}
+      /> : <div className="ticket-detail-readonly-note">ارسال پیام برای این تیکت در دسترس شما نیست.</div>}
     </div>
   );
+}
+
+function getMessageError(error, fallback) {
+  if (error?.status === 400) return getValidationMessage(error, 'متن پیام معتبر نیست.');
+  return getApiErrorMessage(error, fallback, {
+    403: 'اجازه مشاهده یا ارسال پیام در این تیکت را ندارید.',
+    404: 'تیکت موردنظر پیدا نشد.',
+  });
 }
 
 /* ------------------------------------------------------------------ */

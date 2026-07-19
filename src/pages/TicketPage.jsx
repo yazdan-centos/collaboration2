@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import TicketDetails from '../components/TicketDetails';
 import ticketService from '../services/ticketService';
+import { useAuth } from '../context/AuthContext';
+import { hasRole, USER_ROLES } from '../utils/authorization';
+import { useNavigate } from 'react-router-dom';
+import { getApiErrorMessage } from '../utils/apiError';
 
 const PAGE_SIZE = 10;
 
@@ -18,16 +22,11 @@ const priorityMeta = {
   LOW: { label: 'کم', className: 'low', icon: 'fas fa-arrow-down' },
 };
 
-function getErrorStatus(error) {
-  return error?.response?.status ?? error?.status;
-}
-
 function getLoadErrorMessage(error) {
-  const status = getErrorStatus(error);
-  if (status === 401) return 'برای مشاهده تیکت‌ها باید وارد حساب کاربری شوید.';
-  if (status === 403) return 'حساب شما اجازه مشاهده فهرست تیکت‌ها را ندارد.';
-  if (status === 400) return 'فیلترهای جستجو معتبر نیستند.';
-  return 'دریافت اطلاعات تیکت‌ها با خطا مواجه شد.';
+  return getApiErrorMessage(error, 'دریافت اطلاعات تیکت‌ها با خطا مواجه شد.', {
+    400: 'فیلترهای جستجو معتبر نیستند.',
+    403: 'حساب شما اجازه مشاهده فهرست تیکت‌ها را ندارد.',
+  });
 }
 
 function formatDate(value) {
@@ -64,7 +63,7 @@ function normalizePage(response, requestedPage) {
   };
 }
 
-function TicketRow({ ticket, isSelected, onSelect }) {
+function TicketRow({ ticket, isSelected, onSelect, showTriage, showManagement, onDelete }) {
   const status = statusMeta[ticket.status] || { label: ticket.status || 'نامشخص', className: 'unknown' };
   const priority = priorityMeta[ticket.priority];
 
@@ -89,21 +88,29 @@ function TicketRow({ ticket, isSelected, onSelect }) {
         </div>
       </td>
       <td><span className={`ticket-status ${status.className}`}><span className="dot" />{status.label}</span></td>
-      <td>
+      {showTriage && <td>
         {priority ? (
           <span className={`priority-badge ${priority.className}`}>
             <i className={priority.icon} aria-hidden="true" /> {priority.label}
           </span>
         ) : <span className="ticket-muted">—</span>}
-      </td>
-      <td>{ticket.customerName || (ticket.customerId ? `مشتری ${ticket.customerId}` : '—')}</td>
+      </td>}
+      {showTriage && <td>{ticket.scope || ticket.serviceScope || <span className="ticket-muted">—</span>}</td>}
+      {showManagement && <><td>{ticket.customerName || (ticket.customerId ? `مشتری ${ticket.customerId}` : '—')}</td>
       <td>{ticket.assignedToName || ticket.assignedMemberName || (ticket.assignedMemberId ? `عضو ${ticket.assignedMemberId}` : 'تخصیص نیافته')}</td>
+      <td><button type="button" className="action-btn" aria-label="حذف تیکت" onClick={(event) => { event.stopPropagation(); onDelete(ticket); }}><i className="fas fa-trash" /></button></td></>}
       <td className="ticket-date fa-num">{formatDate(ticket.createdAt)}</td>
     </tr>
   );
 }
 
 export default function TicketPage() {
+  const { auth } = useAuth();
+  const navigate = useNavigate();
+  const isCustomer = hasRole(auth, USER_ROLES.CUSTOMER);
+  const isManager = hasRole(auth, USER_ROLES.TEAM_MANAGER);
+  const showTriage = !isCustomer;
+  const showManagement = isManager;
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -158,6 +165,17 @@ export default function TicketPage() {
     setPage(0);
   }
 
+  async function deleteTicket(ticket) {
+    if (!window.confirm(`تیکت «${ticket.title || ticket.id}» حذف شود؟ این عملیات قابل بازگشت نیست.`)) return;
+    try {
+      await ticketService.delete(ticket.id);
+      setSelectedTicketId(null);
+      setReloadKey((value) => value + 1);
+    } catch (error) {
+      setLoadError(getLoadErrorMessage(error));
+    }
+  }
+
   const visibleStart = ticketPage.totalElements ? ticketPage.number * PAGE_SIZE + 1 : 0;
   const visibleEnd = Math.min((ticketPage.number + 1) * PAGE_SIZE, ticketPage.totalElements);
 
@@ -173,6 +191,7 @@ export default function TicketPage() {
             </div>
           </div>
           <div className="panel-actions ticket-toolbar">
+            {(isCustomer || isManager) && <button type="button" className="filter-btn active" onClick={() => navigate('/tickets/new')}><i className="fas fa-plus" /> ایجاد تیکت</button>}
             <label className="team-search">
               <i className="fas fa-search" aria-hidden="true" />
               <input
@@ -210,13 +229,16 @@ export default function TicketPage() {
           <>
             <div className={`ticket-table-wrap${isLoading ? ' loading' : ''}`}>
               <table className="task-table ticket-table">
-                <thead><tr><th>شناسه</th><th>عنوان</th><th>وضعیت</th><th>اولویت</th><th>مشتری</th><th>مسئول</th><th>تاریخ ایجاد</th></tr></thead>
+                <thead><tr><th>شناسه</th><th>عنوان</th><th>وضعیت</th>{showTriage && <><th>اولویت</th><th>محدوده</th></>}{showManagement && <><th>مشتری</th><th>مسئول</th><th>عملیات</th></>}<th>تاریخ ایجاد</th></tr></thead>
                 <tbody>{ticketPage.content.map((ticket) => (
                   <TicketRow
                     ticket={ticket}
                     key={ticket.id}
                     isSelected={selectedTicketId === ticket.id}
                     onSelect={setSelectedTicketId}
+                    showTriage={showTriage}
+                    showManagement={showManagement}
+                    onDelete={deleteTicket}
                   />
                 ))}</tbody>
               </table>

@@ -12,9 +12,15 @@ const slaContractService = {
     const response = await http.get(`${SLA_CONTRACTS_PATH}/${contractId}`, options);
     return response.data;
   },
+
+  async update(contractId, contract) {
+    const response = await http.put(`${SLA_CONTRACTS_PATH}/${contractId}`, contract);
+    return response.data;
+  },
 };
 
 export const getAllSlaContracts = slaContractService.getAll;
 export const getSlaContractById = slaContractService.getById;
+export const updateSlaContract = slaContractService.update;
 
 export default slaContractService;

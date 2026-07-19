@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 export const FILE_UPLOAD_STYLES = {
   container: 'rounded-2xl border border-slate-700 bg-slate-900 p-5 text-slate-100 shadow-xl',
@@ -120,7 +121,7 @@ export function FileRow({ item, uploaded = false, styles, onRemove, onDownload, 
         <div className="flex items-center gap-1">
           <button type="button" className={styles.iconButton} onClick={() => onDownload(item)} disabled={Boolean(busyAction)} aria-label={`دانلود ${item.name}`}><i className="fas fa-download" /></button>
           <button type="button" className={styles.iconButton} onClick={() => onShare(item)} disabled={Boolean(busyAction)} aria-label={`اشتراک ${item.name}`}><i className="fas fa-share-nodes" /></button>
-          <button type="button" className={styles.dangerButton} onClick={() => onDelete(item)} disabled={Boolean(busyAction)} aria-label={`حذف ${item.name}`}><i className={busyAction === `delete:${item.id}` ? 'fas fa-spinner fa-spin' : 'fas fa-trash'} /></button>
+          {onDelete && <button type="button" className={styles.dangerButton} onClick={() => onDelete(item)} disabled={Boolean(busyAction)} aria-label={`حذف ${item.name}`}><i className={busyAction === `delete:${item.id}` ? 'fas fa-spinner fa-spin' : 'fas fa-trash'} /></button>}
         </div>
       )}
     </div>
@@ -216,7 +217,7 @@ export default function FileUploadManager({
       setUploadedFiles((current) => [uploaded, ...current.filter((file) => file.id !== uploaded.id)]);
       onUploaded?.(uploaded);
     } catch (error) {
-      setFiles((current) => current.map((file) => file.id === item.id ? { ...file, status: 'error', error: error?.response?.data?.message || error.message || 'آپلود فایل انجام نشد.' } : file));
+      setFiles((current) => current.map((file) => file.id === item.id ? { ...file, status: 'error', error: getApiErrorMessage(error, 'آپلود فایل انجام نشد.') } : file));
     }
   }
 
@@ -257,7 +258,7 @@ export default function FileUploadManager({
     if (!window.confirm(`فایل «${file.name}» حذف شود؟`)) return;
     setBusyAction(`delete:${file.id}`);
     try { await api?.delete?.(file); setUploadedFiles((current) => current.filter((item) => item.id !== file.id)); }
-    catch (error) { setListError(error?.response?.data?.message || error.message || 'حذف فایل انجام نشد.'); }
+    catch (error) { setListError(getApiErrorMessage(error, 'حذف فایل انجام نشد.')); }
     finally { setBusyAction(''); }
   }
 
@@ -275,7 +276,7 @@ export default function FileUploadManager({
         <span className="mt-1 text-[10px] text-slate-500">حداکثر {maxFiles} فایل، هر فایل تا {formatSize(maxFileSize)}</span>
       </div>
       <PreflightFileList files={files} styles={styles} onRemove={(id) => setFiles((current) => current.filter((item) => item.id !== id))} onUpload={uploadAll} isUploading={isUploading} />
-      <UploadedFilesList files={uploadedFiles} styles={styles} onDownload={resolveDownload} onShare={shareFile} onDelete={deleteFile} busyAction={busyAction} isLoading={isLoading} error={listError} />
+      <UploadedFilesList files={uploadedFiles} styles={styles} onDownload={resolveDownload} onShare={shareFile} onDelete={api?.delete ? deleteFile : undefined} busyAction={busyAction} isLoading={isLoading} error={listError} />
     </div>
   );
 }

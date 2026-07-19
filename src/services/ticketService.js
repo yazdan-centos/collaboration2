@@ -48,6 +48,10 @@ const ticketService = {
     return response.data;
   },
 
+  async delete(ticketId) {
+    await http.delete(`${TICKETS_PATH}/${ticketId}`);
+  },
+
   async getMessages(ticketId) {
     const response = await http.get(`${TICKETS_PATH}/${ticketId}/messages`);
     return response.data;

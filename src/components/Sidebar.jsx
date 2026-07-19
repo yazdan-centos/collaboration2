@@ -1,13 +1,16 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { navSections } from '../data/dashboardData';
 import { useAuth } from '../context/AuthContext';
+import { getVisibleNavigation } from '../utils/authorization';
 
 // سایدبار
 export default function Sidebar({ isOpen, onNavigate }) {
-  const { currentUser, role, logout } = useAuth();
-  const displayName = currentUser || 'کاربر';
+  const { auth, currentUser, role, logout } = useAuth();
+  const displayName = typeof currentUser === 'string'
+    ? currentUser
+    : currentUser?.name || currentUser?.username || 'کاربر';
   const initials = displayName.slice(0, 2).toUpperCase();
+  const visibleItems = getVisibleNavigation(auth);
 
   return (
     <aside className={`sidebar${isOpen ? ' open' : ''}`} id="sidebar">
@@ -24,12 +27,10 @@ export default function Sidebar({ isOpen, onNavigate }) {
       </div>
 
       <nav className="sidebar-nav">
-        {navSections.map((section) => (
-          <React.Fragment key={section.title}>
-            <div className="nav-section-title">{section.title}</div>
-            {section.items.map((item) => (
+        <div className="nav-section-title">منوی اصلی</div>
+        {visibleItems.map((item) => (
               <NavLink
-                key={item.path}
+                key={item.key}
                 to={item.path}
                 onClick={onNavigate}
                 className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
@@ -45,8 +46,6 @@ export default function Sidebar({ isOpen, onNavigate }) {
                   </span>
                 )}
               </NavLink>
-            ))}
-          </React.Fragment>
         ))}
       </nav>
 
@@ -56,7 +55,7 @@ export default function Sidebar({ isOpen, onNavigate }) {
           <div className="user-info">
             <div className="user-name">{displayName}</div>
             <div className="user-role">
-              <span className="online-dot"></span>{role === 'ROLE_TEAM_MANAGER' ? 'مدیر تیم' : 'آنلاین'}
+              <span className="online-dot"></span>{String(role || '').includes('MANAGER') ? 'مدیر تیم' : String(role || '').includes('CUSTOMER') ? 'مشتری' : 'کارشناس'}
             </div>
           </div>
           <button type="button" className="action-btn" onClick={logout} aria-label="خروج از حساب">

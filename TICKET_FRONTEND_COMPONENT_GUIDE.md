@@ -1,451 +1,379 @@
-# Ticket React Component Integration Guide
+# Ticket Frontend Component Guide (React + JavaScript)
 
-This guide describes how frontend developers should design React components that interact with the ticket APIs.
+This guide defines the frontend component boundaries, role-based visibility, and ticket workflows for the React application.
 
-Base API path examples assume the backend runs at `http://localhost:8080`.
+All examples use JavaScript and JSX. The project already has a working HTTP client and authentication setup. Reuse the existing API modules, authenticated client, token handling, base URL, and interceptors. Do not create another HTTP client or configure request infrastructure inside components.
 
-## Authentication
+## Non-Negotiable Authorization Rules
 
-All ticket endpoints require an authenticated user except public auth endpoints.
+The UI must enforce these rules by hiding unavailable navigation items, fields, and actions. The backend remains the final authority; hiding a control is not a replacement for server-side authorization.
 
-Send the JWT with each request:
+### Basic Information Management
 
-```http
-Authorization: Bearer <jwt>
-```
+Only a user with the `TEAM_MANAGER` role may create, edit, or delete basic/master data:
 
-Recommended frontend shape:
+- Customers
+- Team members and other user accounts
+- Team managers
+- SLA contracts
+- Categories and other administrative reference data
+- Roles, permissions, and access scopes
 
-```ts
-type AuthSession = {
-  token: string;
-  userId: number;
-  roles: Array<"CUSTOMER" | "TEAM_MEMBER" | "TEAM_MANAGER">;
+Customers and team members must not see create, edit, or delete controls for this data. They should work only with their permitted ticket views and ticket actions.
+
+| Resource | `CUSTOMER` | `TEAM_MEMBER` | `TEAM_MANAGER` |
+| --- | --- | --- | --- |
+| Customers/users | No menu or management page | No menu or management page | Create, view, edit, delete |
+| Team members/managers | No menu or management page | No menu or management page | Create, view, edit, delete |
+| SLA contracts | No menu or management page | No menu or management page | Create, view, edit, delete |
+| Categories/reference data | No menu or management page | No menu or management page | Create, view, edit, delete |
+| Roles and permissions | No menu or management page | No menu or management page | Manage when `ACCESS_ADMIN` is effective |
+
+### Ticket Capabilities
+
+| Capability | `CUSTOMER` | Assigned `TEAM_MEMBER` | `TEAM_MANAGER` |
+| --- | --- | --- | --- |
+| See ticket list | Own tickets only | Assigned tickets only | Tickets in management scope |
+| Create ticket | Yes | No | Yes, when required by the management flow |
+| See priority | No | Yes, read-only | Yes |
+| See ticket/service scope | No | Yes, read-only | Yes |
+| Edit title or description after creation | No | No | Yes |
+| Change status | No | Yes, only when assigned | Yes |
+| Add message | Yes, on own ticket | Yes, only when assigned | Yes |
+| Upload attachment | Yes, on own ticket | Only if the product flow explicitly enables it | Yes |
+| Change customer, SLA, assignee, priority, or scope | No | No | Yes |
+| Delete ticket | Do not expose in the UI | Do not expose in the UI | Yes, within management scope |
+
+An assigned expert may see priority and scope for triage context, but those fields must remain read-only. The expert's editing controls are limited to adding a message and changing ticket status. This avoids contradicting the rule that only managers change administrative or triage metadata.
+
+## Authentication Session
+
+Read the signed-in user and effective role from the existing authentication state. A practical session object has this shape:
+
+```js
+const session = {
+  token: "jwt-token",
+  userId: 42,
+  roles: ["TEAM_MEMBER"],
+  permissions: ["TICKET_READ", "TICKET_UPDATE"],
 };
 ```
 
-## Ticket Endpoints
+Centralize role and permission checks rather than scattering string comparisons across components:
 
-| Use case | Method | Path | Roles |
+```js
+export const USER_ROLES = Object.freeze({
+  CUSTOMER: "CUSTOMER",
+  TEAM_MEMBER: "TEAM_MEMBER",
+  TEAM_MANAGER: "TEAM_MANAGER",
+});
+
+export function hasRole(session, role) {
+  return session?.roles?.includes(role) === true;
+}
+
+export function isManager(session) {
+  return hasRole(session, USER_ROLES.TEAM_MANAGER);
+}
+```
+
+## Role-Aware Sidebar
+
+Build the sidebar from an allowlisted navigation configuration after authentication. Do not render an irrelevant link and wait for the destination page or API to return an empty result or `403`.
+
+For example, a customer must not see `SLA Contracts`, `Customers`, `Users`, or `Access Management` in the sidebar. A team member must not see those links either. Only managers should receive administrative navigation entries.
+
+```js
+const navigationItems = [
+  {
+    key: "tickets",
+    label: "Tickets",
+    to: "/tickets",
+    roles: ["CUSTOMER", "TEAM_MEMBER", "TEAM_MANAGER"],
+  },
+  {
+    key: "new-ticket",
+    label: "Create Ticket",
+    to: "/tickets/new",
+    roles: ["CUSTOMER", "TEAM_MANAGER"],
+  },
+  {
+    key: "customers",
+    label: "Customers",
+    to: "/customers",
+    roles: ["TEAM_MANAGER"],
+  },
+  {
+    key: "team-members",
+    label: "Team Members",
+    to: "/team-members",
+    roles: ["TEAM_MANAGER"],
+  },
+  {
+    key: "sla-contracts",
+    label: "SLA Contracts",
+    to: "/sla-contracts",
+    roles: ["TEAM_MANAGER"],
+  },
+  {
+    key: "access",
+    label: "Access Management",
+    to: "/admin/access",
+    roles: ["TEAM_MANAGER"],
+    permission: "ACCESS_ADMIN",
+  },
+];
+
+export function getVisibleNavigation(session) {
+  return navigationItems.filter((item) => {
+    const roleAllowed = item.roles.some((role) => session.roles.includes(role));
+    const permissionAllowed = !item.permission
+      || session.permissions.includes(item.permission);
+
+    return roleAllowed && permissionAllowed;
+  });
+}
+```
+
+Also protect routes. A user who manually enters an unauthorized URL should be redirected to the first relevant page, normally `/tickets`, or shown a proper forbidden page.
+
+```jsx
+function ManagerRoute({ session, children }) {
+  if (!session) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!isManager(session)) {
+    return <Navigate to="/tickets" replace />;
+  }
+
+  return children;
+}
+```
+
+## Ticket Endpoints Used by Components
+
+Use the existing API service functions that wrap these backend endpoints.
+
+| Use case | Method | Path | UI roles |
 | --- | --- | --- | --- |
 | Create ticket | `POST` | `/api/tickets` | `CUSTOMER`, `TEAM_MANAGER` |
-| List ticket summaries | `GET` | `/api/tickets` | `TEAM_MEMBER`, `TEAM_MANAGER` |
-| Get full ticket | `GET` | `/api/tickets/{ticketId}` | `CUSTOMER`, `TEAM_MEMBER`, `TEAM_MANAGER` |
-| Update ticket | `PUT` | `/api/tickets/{ticketId}` | `TEAM_MEMBER`, `TEAM_MANAGER` |
-| Search tickets | `POST` | `/api/tickets/search?page=0&size=10&sortBy=createdAt&order=DESC` | authenticated |
-| List ticket messages | `GET` | `/api/tickets/{ticketId}/messages` | `CUSTOMER`, `TEAM_MEMBER`, `TEAM_MANAGER` |
-| Add ticket message, generic | `POST` | `/api/tickets/{ticketId}/messages` | `CUSTOMER`, `TEAM_MEMBER`, `TEAM_MANAGER` |
-| Upload attachment, generic | `POST` | `/api/tickets/{ticketId}/attachments` | `CUSTOMER`, `TEAM_MEMBER`, `TEAM_MANAGER` |
-| Delete attachment | `DELETE` | `/api/tickets/attachments/{attachmentId}` | `CUSTOMER`, `TEAM_MEMBER`, `TEAM_MANAGER` |
-| Create message as team member | `POST` | `/api/team-members/tickets/{ticketId}/messages` | `TEAM_MEMBER` |
-| Upload attachment as customer | `POST` | `/api/customers/tickets/{ticketId}/attachments` | `CUSTOMER` |
+| List team ticket summaries | `GET` | `/api/tickets` | `TEAM_MEMBER`, `TEAM_MANAGER` |
+| Search role-scoped tickets | `POST` | `/api/tickets/search` | Authenticated roles |
+| Get ticket detail | `GET` | `/api/tickets/{ticketId}` | Owner customer, assigned expert, manager |
+| Update ticket/status | `PUT` | `/api/tickets/{ticketId}` | Assigned expert for status only; manager for full update |
+| List messages | `GET` | `/api/tickets/{ticketId}/messages` | Authorized ticket participants |
+| Add message | `POST` | `/api/tickets/{ticketId}/messages` | Authorized ticket participants |
+| Add expert message | `POST` | `/api/team-members/tickets/{ticketId}/messages` | Assigned `TEAM_MEMBER` |
+| Upload customer attachment | `POST` | `/api/customers/tickets/{ticketId}/attachments` | Owner `CUSTOMER` |
+| Upload generic attachment | `POST` | `/api/tickets/{ticketId}/attachments` | Authorized roles when enabled by the UI flow |
 
-Prefer the role-specific endpoints for UI flows where the role is known:
+## JavaScript Data Shapes
 
-| UI flow | Preferred endpoint |
-| --- | --- |
-| Team member replies to a ticket | `POST /api/team-members/tickets/{ticketId}/messages` |
-| Customer uploads a file to their own ticket | `POST /api/customers/tickets/{ticketId}/attachments` |
+These contracts are shown as plain JavaScript objects.
 
-The generic endpoints are still available for backward compatibility.
+### Ticket Creation
 
-## Data Contracts
-
-### TicketCreateRequest
-
-```ts
-type TicketCreateRequest = {
-  title: string;
-  description: string;
-  customerId: number;
-  slaContractId?: number | null;
-  assignedMemberId?: number | null;
+```js
+const ticketCreateRequest = {
+  title: "Cannot access dashboard",
+  description: "The dashboard shows a blank page after login.",
+  customerId: 15,
+  slaContractId: 3,
+  assignedMemberId: null,
 };
 ```
 
-Example:
+For a customer-created ticket, derive `customerId` from the authenticated session/profile. Do not let a customer select another customer ID. Assignment is a management concern and should not appear in the customer form.
 
-```json
-{
-  "title": "Cannot access dashboard",
-  "description": "The dashboard shows a blank page after login.",
-  "customerId": 15,
-  "slaContractId": 3,
-  "assignedMemberId": null
-}
-```
-
-### TicketUpdateRequest
-
-```ts
-type TicketStatus =
-  | "UNALLOCATED"
-  | "ASSIGNED"
-  | "IN_PROGRESS"
-  | "CLOSED"
-  | "RESOLVED";
-
-type TicketUpdateRequest = {
-  title?: string;
-  description?: string;
-  slaContractId?: number | null;
-  assignedMemberId?: number | null;
-  status?: TicketStatus;
-  statusNote?: string;
+```js
+const customerTicketCreateRequest = {
+  title: form.title.trim(),
+  description: form.description.trim(),
+  customerId: session.userId,
+  slaContractId: selectedSlaId || null,
+  assignedMemberId: null,
 };
 ```
 
-### TicketResponse
+### Ticket Statuses
 
-```ts
-type TicketResponse = {
-  id: number;
-  title: string;
-  description: string;
-  status: TicketStatus;
-  customerId: number;
-  slaContractId: number | null;
-  assignedMemberId: number | null;
-  createdAt: string;
-  updatedAt: string;
-  messages: TicketMessageResponse[];
-  attachments: TicketAttachmentResponse[];
-  statusHistory: TicketStatusHistoryResponse[];
+```js
+export const TICKET_STATUS = Object.freeze({
+  UNALLOCATED: "UNALLOCATED",
+  ASSIGNED: "ASSIGNED",
+  IN_PROGRESS: "IN_PROGRESS",
+  RESOLVED: "RESOLVED",
+  CLOSED: "CLOSED",
+});
+```
+
+The backend validates transitions. The frontend should offer only valid next statuses:
+
+```js
+export const nextTicketStatuses = Object.freeze({
+  UNALLOCATED: ["ASSIGNED", "CLOSED"],
+  ASSIGNED: ["IN_PROGRESS", "UNALLOCATED", "CLOSED"],
+  IN_PROGRESS: ["RESOLVED", "CLOSED", "ASSIGNED"],
+  RESOLVED: ["CLOSED", "IN_PROGRESS"],
+  CLOSED: [],
+});
+```
+
+An assigned expert sends only the status fields from the edit form:
+
+```js
+const expertStatusUpdate = {
+  status: selectedStatus,
+  statusNote: note.trim() || null,
 };
 ```
 
-### TicketSummaryResponse
+Do not include `title`, `description`, `slaContractId`, `assignedMemberId`, `priority`, or scope fields in an expert update request.
 
-```ts
-type TicketSummaryResponse = {
-  id: number;
-  title: string;
-  status: TicketStatus;
-  customerId: number;
-  assignedMemberId: number | null;
-  createdAt: string;
+### Ticket Message
+
+```js
+const ticketMessageRequest = {
+  message: message.trim(),
 };
 ```
 
-### TicketMessageCreateRequest
+### Search Request
 
-```ts
-type TicketMessageCreateRequest = {
-  message: string;
+```js
+const ticketSearchRequest = {
+  title: filters.title || undefined,
+  status: filters.status || undefined,
+  createdFrom: filters.createdFrom || undefined,
+  createdTo: filters.createdTo || undefined,
 };
 ```
 
-### TicketMessageResponse
+Do not add customer-only `priority` or scope filters. The server derives `customerId`, `assignedToId`, `teamId`, `userType`, and `userId` from the authenticated actor; components should not use those fields to widen access.
 
-```ts
-type TicketMessageResponse = {
-  id: number;
-  senderId: number;
-  senderName: string;
-  message: string;
-  sentAt: string;
-};
-```
+## Recommended JavaScript Component Structure
 
-### TicketAttachmentResponse
-
-```ts
-type TicketAttachmentResponse = {
-  id: number;
-  ticketId: number;
-  fileName: string;
-  contentType: string | null;
-  size: number;
-  filePath: string;
-  uploadedById: number;
-  uploadedAt: string;
-};
-```
-
-### TicketStatusHistoryResponse
-
-```ts
-type TicketStatusHistoryResponse = {
-  id: number;
-  oldStatus: TicketStatus | null;
-  newStatus: TicketStatus;
-  changedById: number;
-  changedByName: string;
-  note: string | null;
-  changedAt: string;
-};
-```
-
-### TicketSearchRequestDto
-
-```ts
-type UserType = "CUSTOMER" | "TEAM_MEMBER" | "TEAM_MANAGER";
-
-type TicketSearchRequestDto = {
-  title?: string;
-  status?: TicketStatus;
-  priority?: string;
-  customerId?: number;
-  assignedToId?: number;
-  teamId?: number;
-  createdFrom?: string;
-  createdTo?: string;
-  userType?: UserType;
-  userId?: number;
-};
-```
-
-The search endpoint returns a Spring `Page`.
-
-```ts
-type Page<T> = {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  number: number;
-  size: number;
-  first: boolean;
-  last: boolean;
-};
-```
-
-For customers, search content is shaped like:
-
-```ts
-type CustomerTicketDto = {
-  id: number;
-  title: string;
-  description: string;
-  status: string;
-  priority: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
-```
-
-For team users, search content is shaped like:
-
-```ts
-type TeamTicketDto = {
-  id: number;
-  title: string;
-  description: string;
-  status: string;
-  priority: string | null;
-  customerName: string | null;
-  assignedToName: string | null;
-  teamName: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
-```
-
-## API Client
-
-Create a small API client module instead of calling `fetch` directly inside components.
-
-```ts
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
-
-async function apiFetch<T>(
-  path: string,
-  token: string,
-  init: RequestInit = {}
-): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...(init.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
-      ...init.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || `Request failed with status ${response.status}`);
-  }
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return response.json() as Promise<T>;
-}
-```
-
-### Ticket API Functions
-
-```ts
-export function getTicket(ticketId: number, token: string) {
-  return apiFetch<TicketResponse>(`/api/tickets/${ticketId}`, token);
-}
-
-export function searchTickets(
-  request: TicketSearchRequestDto,
-  token: string,
-  page = 0,
-  size = 10,
-  sortBy = "createdAt",
-  order: "ASC" | "DESC" = "DESC"
-) {
-  const params = new URLSearchParams({
-    page: String(page),
-    size: String(size),
-    sortBy,
-    order,
-  });
-
-  return apiFetch<Page<CustomerTicketDto | TeamTicketDto>>(
-    `/api/tickets/search?${params.toString()}`,
-    token,
-    {
-      method: "POST",
-      body: JSON.stringify(request),
-    }
-  );
-}
-
-export function createTicket(request: TicketCreateRequest, token: string) {
-  return apiFetch<TicketResponse>("/api/tickets", token, {
-    method: "POST",
-    body: JSON.stringify(request),
-  });
-}
-
-export function updateTicket(
-  ticketId: number,
-  request: TicketUpdateRequest,
-  token: string
-) {
-  return apiFetch<TicketResponse>(`/api/tickets/${ticketId}`, token, {
-    method: "PUT",
-    body: JSON.stringify(request),
-  });
-}
-
-export function createTeamMemberTicketMessage(
-  ticketId: number,
-  request: TicketMessageCreateRequest,
-  token: string
-) {
-  return apiFetch<TicketMessageResponse>(
-    `/api/team-members/tickets/${ticketId}/messages`,
-    token,
-    {
-      method: "POST",
-      body: JSON.stringify(request),
-    }
-  );
-}
-
-export function uploadCustomerTicketAttachment(
-  ticketId: number,
-  file: File,
-  token: string
-) {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  return apiFetch<TicketAttachmentResponse>(
-    `/api/customers/tickets/${ticketId}/attachments`,
-    token,
-    {
-      method: "POST",
-      body: formData,
-    }
-  );
-}
-```
-
-Do not set `Content-Type` manually for file upload. The browser must set the multipart boundary.
-
-## Recommended Component Structure
-
-Use role-aware containers and small leaf components.
+Use `.js` or `.jsx` files consistently with the existing project convention.
 
 ```text
 src/features/tickets/
-  api/ticketsApi.ts
-  components/TicketList.tsx
-  components/TicketSearchBar.tsx
-  components/TicketDetail.tsx
-  components/TicketMessageThread.tsx
-  components/TeamMemberReplyComposer.tsx
-  components/CustomerAttachmentUploader.tsx
-  components/TicketStatusEditor.tsx
-  hooks/useTicket.ts
-  hooks/useTicketSearch.ts
+  api/ticketsApi.js
+  components/TicketList.jsx
+  components/TicketSearchBar.jsx
+  components/TicketDetail.jsx
+  components/TicketCreateForm.jsx
+  components/TicketMessageThread.jsx
+  components/TicketMessageComposer.jsx
+  components/CustomerAttachmentUploader.jsx
+  components/TicketStatusEditor.jsx
+  components/ManagerTicketEditor.jsx
+  hooks/useTicket.js
+  hooks/useTicketSearch.js
 ```
 
-### `TicketList`
+## Ticket List
 
-Responsibilities:
+The list must be role-scoped:
 
-- Render paginated search results.
-- Support filters for title, status, customer, assignee, and created date range.
-- Navigate to a ticket detail view.
-- Do not fetch message bodies for every row; use summary/search data.
+- A customer sees only tickets owned by that customer.
+- A team member sees only tickets assigned to that member.
+- A manager sees tickets within the manager's effective scope.
+- Customer rows must omit priority, emergency, and scope columns entirely.
+- Team-member rows may show priority and scope, but they are display-only.
+- Management actions must not appear for customers or team members.
 
-### `TicketDetail`
+Avoid disabled or empty administrative actions when they are irrelevant. Do not show an edit icon that always produces `403`.
 
-Responsibilities:
+```jsx
+function TicketListColumns({ role }) {
+  const columns = ["title", "status", "createdAt"];
 
-- Fetch `GET /api/tickets/{ticketId}`.
-- Render title, description, status, customer, assignee, SLA, messages, attachments, and status history.
-- Choose child actions based on user role.
+  if (role === "TEAM_MEMBER" || role === "TEAM_MANAGER") {
+    columns.push("priority", "scope");
+  }
 
-Role behavior:
+  if (role === "TEAM_MANAGER") {
+    columns.push("customer", "assignee", "actions");
+  }
 
-| Role | Visible actions |
-| --- | --- |
-| `CUSTOMER` | upload attachment, view messages, optionally create generic message if UI supports it |
-| `TEAM_MEMBER` | create team-member reply, update ticket if allowed by product flow |
-| `TEAM_MANAGER` | assign/update ticket, view all details |
+  return <TicketTable columns={columns} />;
+}
+```
 
-### `TeamMemberReplyComposer`
+## Ticket Detail
 
-Use this component for the required team-member message flow.
+`TicketDetail` owns presentation; role-specific child components own actions.
 
-Behavior:
+| Role | Visible information | Visible actions |
+| --- | --- | --- |
+| `CUSTOMER` | Title, description, status, dates, messages, attachments | Add message, upload attachment |
+| Assigned `TEAM_MEMBER` | Customer-visible fields plus priority and scope | Add message, change status |
+| `TEAM_MANAGER` | All ticket fields, priority, scope, SLA, customer, assignment, history | Full allowed management actions |
 
-- Show only for users with `TEAM_MEMBER`.
-- Disable submit while request is pending.
-- Trim message client-side and block empty messages.
-- On success, append the returned `TicketMessageResponse` to the thread or refetch the ticket.
+Customer components must not render priority or scope in the DOM. Do not merely hide them with CSS because hidden DOM content is still exposed to browser tools and accessibility APIs. Prefer a customer-specific response projection from the backend and pass only allowed fields to customer components.
 
-Example:
+```jsx
+function TicketDetailActions({ session, ticket }) {
+  const role = session.roles[0];
+  const isAssignedExpert = role === "TEAM_MEMBER"
+    && ticket.assignedMemberId === session.userId;
 
-```tsx
-function TeamMemberReplyComposer({
-  ticketId,
-  token,
-  onCreated,
-}: {
-  ticketId: number;
-  token: string;
-  onCreated: (message: TicketMessageResponse) => void;
-}) {
-  const [message, setMessage] = useState("");
+  return (
+    <>
+      {role === "CUSTOMER" && (
+        <>
+          <TicketMessageComposer ticketId={ticket.id} />
+          <CustomerAttachmentUploader ticketId={ticket.id} />
+        </>
+      )}
+
+      {isAssignedExpert && (
+        <>
+          <TicketMessageComposer ticketId={ticket.id} />
+          <TicketStatusEditor ticket={ticket} />
+        </>
+      )}
+
+      {role === "TEAM_MANAGER" && <ManagerTicketEditor ticket={ticket} />}
+    </>
+  );
+}
+```
+
+## Customer Ticket Creation and File Uploads
+
+Customers may attach files while creating a ticket and while viewing/updating an existing ticket.
+
+The current ticket creation endpoint accepts JSON, while file upload requires multipart data and an existing ticket ID. Implement “upload during creation” as a two-step UI flow:
+
+1. Validate the ticket form and selected files.
+2. Create the ticket with `POST /api/tickets`.
+3. Read the new ticket ID from the response.
+4. Upload each selected file to `POST /api/customers/tickets/{ticketId}/attachments`.
+5. Navigate to the ticket detail after uploads finish.
+6. If an upload fails, keep the successfully created ticket and show which files need retrying.
+
+```jsx
+function TicketCreateForm({ session, createTicket, uploadAttachment }) {
+  const [files, setFiles] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function handleSubmit(event: React.FormEvent) {
+  async function handleSubmit(event) {
     event.preventDefault();
-
-    const trimmed = message.trim();
-    if (!trimmed) {
-      return;
-    }
-
     setIsSubmitting(true);
+
     try {
-      const created = await createTeamMemberTicketMessage(
-        ticketId,
-        { message: trimmed },
-        token
-      );
-      setMessage("");
-      onCreated(created);
+      const ticket = await createTicket({
+        title: event.currentTarget.title.value.trim(),
+        description: event.currentTarget.description.value.trim(),
+        customerId: session.userId,
+        slaContractId: null,
+        assignedMemberId: null,
+      });
+
+      const uploads = files.map((file) => uploadAttachment(ticket.id, file));
+      await Promise.allSettled(uploads);
     } finally {
       setIsSubmitting(false);
     }
@@ -453,156 +381,147 @@ function TeamMemberReplyComposer({
 
   return (
     <form onSubmit={handleSubmit}>
-      <textarea
-        value={message}
-        onChange={(event) => setMessage(event.target.value)}
-        placeholder="Write a reply to the customer"
-      />
-      <button type="submit" disabled={isSubmitting || !message.trim()}>
-        {isSubmitting ? "Sending..." : "Send reply"}
-      </button>
-    </form>
-  );
-}
-```
-
-### `CustomerAttachmentUploader`
-
-Use this component for the required customer upload flow.
-
-Behavior:
-
-- Show only for users with `CUSTOMER`.
-- Use a single `file` field in `FormData`.
-- Validate file presence client-side.
-- Consider enforcing frontend size/type limits if product requirements define them.
-- On success, append the returned `TicketAttachmentResponse` or refetch the ticket.
-
-Example:
-
-```tsx
-function CustomerAttachmentUploader({
-  ticketId,
-  token,
-  onUploaded,
-}: {
-  ticketId: number;
-  token: string;
-  onUploaded: (attachment: TicketAttachmentResponse) => void;
-}) {
-  const [file, setFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
-
-    if (!file) {
-      return;
-    }
-
-    setIsUploading(true);
-    try {
-      const uploaded = await uploadCustomerTicketAttachment(ticketId, file, token);
-      setFile(null);
-      onUploaded(uploaded);
-    } finally {
-      setIsUploading(false);
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit}>
+      <input name="title" required />
+      <textarea name="description" required />
       <input
         type="file"
-        onChange={(event) => setFile(event.currentTarget.files?.[0] ?? null)}
+        multiple
+        onChange={(event) => setFiles(Array.from(event.target.files || []))}
       />
-      <button type="submit" disabled={isUploading || !file}>
-        {isUploading ? "Uploading..." : "Upload file"}
+      <button disabled={isSubmitting} type="submit">
+        {isSubmitting ? "Creating..." : "Create ticket"}
       </button>
     </form>
   );
 }
 ```
 
-## State Management Guidance
+For an existing ticket, render the same uploader in the customer detail page. The API service should create `FormData`; components should call the existing upload function rather than configuring multipart headers themselves.
 
-For a small app, local component state plus custom hooks is enough.
+## Assigned Expert Editing
 
-Recommended hooks:
+An expert is allowed to act only when the ticket is assigned to that expert.
 
-```ts
-function useTicket(ticketId: number, token: string) {
-  // GET /api/tickets/{ticketId}
-}
+The expert may:
 
-function useTicketSearch(filters: TicketSearchRequestDto, token: string) {
-  // POST /api/tickets/search
+- Read priority and scope.
+- Add a message.
+- Change the ticket status using a valid transition.
+- Add a meaningful status note.
+
+The expert may not:
+
+- Change title or description.
+- Change customer or SLA contract.
+- Change assignee from the general edit form.
+- Change priority or scope.
+- Edit customer, user, SLA, role, or category records.
+
+Render priority and scope as text or a read-only value, never as an input for `TEAM_MEMBER`:
+
+```jsx
+function ExpertTriageInfo({ ticket }) {
+  return (
+    <dl>
+      <dt>Priority</dt>
+      <dd>{ticket.priority}</dd>
+      <dt>Scope</dt>
+      <dd>{ticket.scope}</dd>
+    </dl>
+  );
 }
 ```
 
-If the app already uses TanStack Query, model these operations as:
+## Manager Forms
 
-| Operation | Query key or mutation |
+Manager-only pages may expose create, edit, and delete operations for customers, users, team members, SLA contracts, categories, and access control.
+
+Every manager-only form should:
+
+- Check `TEAM_MANAGER` before rendering.
+- Check fine-grained permissions when the endpoint requires them.
+- Hide destructive controls from all other roles.
+- Confirm delete operations and explain the consequence.
+- Invalidate/refetch affected list and detail queries after mutation.
+- Display API validation errors next to the relevant field.
+
+Do not reuse a manager form for a customer or expert by disabling half of its fields. Use smaller role-specific components with only the permitted data.
+
+## State and Query Management
+
+Use the existing application state and API service. Local state plus custom hooks is enough for form-only state. If the project already uses a server-state library, keep its established query keys.
+
+```js
+function useTicket(ticketId) {
+  // Use the existing ticket API module.
+}
+
+function useTicketSearch(filters) {
+  // Use the existing role-scoped search API module.
+}
+```
+
+After mutations, refresh only relevant data:
+
+| Operation | Data to refresh |
 | --- | --- |
-| Ticket detail | `["ticket", ticketId]` |
-| Ticket search | `["tickets", filters, page, size, sortBy, order]` |
-| Create team-member message | mutation invalidates `["ticket", ticketId]` |
-| Upload customer attachment | mutation invalidates `["ticket", ticketId]` |
-| Update ticket | mutation invalidates ticket detail and list/search queries |
+| Create ticket | Ticket list and new ticket detail |
+| Add message | Ticket detail/messages |
+| Upload attachment | Ticket detail/attachments |
+| Change status | Ticket detail, ticket list, status history |
+| Manager updates basic information | Corresponding list and detail |
 
 ## Error Handling
 
-Common status codes:
-
 | Status | Meaning | UI behavior |
 | --- | --- | --- |
-| `400` | Validation error or invalid request | Show field-level or form-level error |
-| `401` | Missing or expired token | Redirect to login or refresh session |
-| `403` | Authenticated but wrong role or not owner | Show "You do not have access to this action" |
-| `404` | Ticket, sender, uploader, or attachment not found | Show not-found state |
-| `500` | Server error, including storage failure | Show retry option |
+| `400` | Invalid data or status transition | Show a field/form error and preserve input |
+| `401` | Missing or expired authentication | Return to sign-in through the existing auth flow |
+| `403` | Role, ownership, assignment, or permission denied | Show a concise forbidden message; fix any UI control that should have been hidden |
+| `404` | Ticket or related record not found | Show a not-found state |
+| `500` | Unexpected server/storage failure | Show retry guidance without losing form data |
 
-For customer uploads, a `403` can mean the authenticated customer tried to upload to a ticket they do not own.
-
-For team-member message creation, a `403` can mean the authenticated user is not a team member.
-
-## UX Requirements
-
-Recommended behavior:
-
-- Disable submit buttons while requests are pending.
-- Optimistically append messages only if the app can roll back on failure; otherwise refetch after success.
-- Show uploaded file name, size, content type, and upload time.
-- Format dates from ISO strings using the user's locale.
-- Preserve search filters in URL query params for shareable list views.
-- Keep role-specific actions hidden if the role does not match.
-
-## Minimal Screen Flows
-
-### Customer Uploads File
-
-1. Customer opens `TicketDetail`.
-2. UI fetches `GET /api/tickets/{ticketId}`.
-3. UI shows `CustomerAttachmentUploader`.
-4. Customer selects a file.
-5. UI sends `POST /api/customers/tickets/{ticketId}/attachments` with multipart `file`.
-6. UI appends the returned attachment or refetches the ticket.
-
-### Team Member Creates Message
-
-1. Team member opens `TicketDetail`.
-2. UI fetches `GET /api/tickets/{ticketId}`.
-3. UI shows `TeamMemberReplyComposer`.
-4. Team member enters a non-empty message.
-5. UI sends `POST /api/team-members/tickets/{ticketId}/messages`.
-6. UI appends the returned message or refetches the ticket.
+A customer upload may return `403` when the ticket belongs to another customer. An expert action may return `403` when the ticket is not assigned to that expert.
 
 ## Manual Test Checklist
 
-- Customer can upload a file to their own ticket.
-- Customer gets a `403` when uploading to another customer's ticket.
-- Team member can create a message using the team-member endpoint.
-- Customer cannot call the team-member message endpoint.
-- Empty message is blocked by the UI and rejected by backend validation.
-- Empty file upload is blocked by the UI and rejected by backend validation.
-- Ticket detail updates after successful message or attachment creation.
+### Navigation
+
+- Customer sidebar contains ticket list and ticket creation, but no users, customers, SLA, categories, or access links.
+- Team-member sidebar contains the assigned ticket list, but no basic-information management links.
+- Manager sidebar contains authorized management links.
+- Direct navigation to a manager route is rejected for customers and team members.
+- No role sees a link that opens a permanently empty or forbidden page.
+
+### Customer
+
+- Customer sees only owned tickets.
+- Customer can create a ticket.
+- Customer can select files during ticket creation and failed uploads can be retried.
+- Customer can upload files from an existing owned ticket.
+- Customer can add messages to an owned ticket.
+- Customer never sees priority or scope in list, detail, filters, exports, or hidden DOM content.
+- Customer cannot manage users, customers, team members, SLA contracts, or categories.
+
+### Assigned Expert
+
+- Team member sees only assigned tickets.
+- Assigned expert sees priority and scope as read-only values.
+- Assigned expert can add a message and change status using valid transitions.
+- Unassigned expert cannot edit the ticket.
+- Expert cannot edit title, description, SLA, customer, assignee, priority, or scope.
+- Expert cannot manage basic/master data.
+
+### Manager
+
+- Manager can access customer, user, team-member, SLA, category, and access-management pages when authorized.
+- Manager can create, edit, and delete basic information.
+- Manager sees all relevant ticket fields and management controls.
+- Delete actions require confirmation and refresh affected data.
+
+### General
+
+- Pending actions disable duplicate submission.
+- Empty messages and empty file uploads are blocked.
+- Successful messages, status changes, and uploads refresh the ticket detail.
+- `401`, `403`, validation, not-found, and retry states are clear and role-appropriate.

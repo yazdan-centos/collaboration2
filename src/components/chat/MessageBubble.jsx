@@ -10,11 +10,10 @@ const getInitials = (name = '') =>
     .toUpperCase() || '?';
 
 const formatTime = (isoString) => {
-  try {
-    return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  } catch {
-    return '';
-  }
+  if (!isoString) return '';
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
 /**

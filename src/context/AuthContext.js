@@ -1,12 +1,67 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 const AUTH_STORAGE_KEY = 'auth';
 const AuthContext = createContext(null);
 
+function decodeAccessToken(accessToken) {
+  try {
+    const payload = accessToken?.split('.')[1];
+    if (!payload) return {};
+    const normalizedPayload = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const paddedPayload = normalizedPayload.padEnd(Math.ceil(normalizedPayload.length / 4) * 4, '=');
+    return JSON.parse(decodeURIComponent(atob(paddedPayload).split('').map((character) => `%${character.charCodeAt(0).toString(16).padStart(2, '0')}`).join('')));
+  } catch {
+    return {};
+  }
+}
+
+function firstId(...values) {
+  return values.find((value) => value !== undefined && value !== null && value !== '') ?? null;
+}
+
+function normalizeSession(loginResponse) {
+  const currentUser = loginResponse?.currentUser;
+  const nestedUser = loginResponse?.user ?? loginResponse?.account ?? loginResponse?.principal;
+  const tokenClaims = decodeAccessToken(loginResponse?.accessToken);
+  const customerId = firstId(
+    loginResponse?.customerId,
+    currentUser?.customerId,
+    currentUser?.customer?.id,
+    nestedUser?.customerId,
+    nestedUser?.customer?.id,
+    tokenClaims?.customerId,
+    tokenClaims?.customer_id,
+  );
+  const userId = firstId(
+    loginResponse?.userId,
+    loginResponse?.id,
+    currentUser?.userId,
+    currentUser?.id,
+    nestedUser?.userId,
+    nestedUser?.id,
+    tokenClaims?.userId,
+    tokenClaims?.user_id,
+    tokenClaims?.id,
+    customerId,
+    /^\d+$/.test(String(tokenClaims?.sub ?? '')) ? tokenClaims.sub : null,
+  );
+  const resolvedRoles = Array.isArray(loginResponse?.roles)
+    ? loginResponse.roles
+    : (loginResponse?.role ? [loginResponse.role] : []);
+
+  return {
+    ...loginResponse,
+    roles: resolvedRoles,
+    permissions: loginResponse?.permissions || [],
+    userId,
+    customerId: customerId ?? userId,
+  };
+}
+
 function readStoredAuth() {
   try {
     const storedAuth = JSON.parse(sessionStorage.getItem(AUTH_STORAGE_KEY) || 'null');
-    return storedAuth?.accessToken ? storedAuth : null;
+    return storedAuth?.accessToken ? normalizeSession(storedAuth) : null;
   } catch {
     sessionStorage.removeItem(AUTH_STORAGE_KEY);
     return null;
@@ -17,12 +72,11 @@ export function AuthProvider({ children }) {
   const [auth, setAuth] = useState(readStoredAuth);
 
   const login = useCallback((loginResponse) => {
-    const { currentUser, accessToken, role } = loginResponse || {};
-    if (!accessToken) {
+    if (!loginResponse?.accessToken) {
       throw new Error('پاسخ ورود شامل توکن دسترسی نیست.');
     }
 
-    const session = { currentUser, accessToken, role };
+    const session = normalizeSession(loginResponse);
     sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
     setAuth(session);
     return session;
@@ -33,11 +87,20 @@ export function AuthProvider({ children }) {
     setAuth(null);
   }, []);
 
+  useEffect(() => {
+    window.addEventListener('auth:expired', logout);
+    return () => window.removeEventListener('auth:expired', logout);
+  }, [logout]);
+
   const value = useMemo(() => ({
     auth,
     currentUser: auth?.currentUser || null,
     accessToken: auth?.accessToken || null,
     role: auth?.role || null,
+    roles: auth?.roles || (auth?.role ? [auth.role] : []),
+    permissions: auth?.permissions || [],
+    userId: auth?.userId ?? auth?.currentUser?.id ?? auth?.currentUser?.userId ?? null,
+    customerId: auth?.customerId ?? auth?.currentUser?.customerId ?? auth?.userId ?? null,
     isAuthenticated: Boolean(auth?.accessToken),
     login,
     logout,
