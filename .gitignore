@@ -10,9 +10,15 @@
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store
+.vscode/
+.agents/
+.gapcode/
+*.zip
+*.log
 .env.local
 .env.development.local
 .env.test.local
@@ -21,4 +27,3 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-{pattern_to_ignore}
