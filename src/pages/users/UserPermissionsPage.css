@@ -1,0 +1,287 @@
+.permissions-page {
+    padding: 28px;
+    max-width: 1400px;
+    margin: auto;
+    color: var(--text-primary)
+}
+
+.permissions-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px
+}
+
+.eyebrow {
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 700
+}
+
+.permissions-hero h1 {
+    font-size: 28px;
+    margin: 7px 0
+}
+
+.permissions-hero p, .access-toolbar p {
+    color: var(--text-secondary);
+    font-size: 13px
+}
+
+.permissions-summary {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 15px 24px;
+    text-align: center
+}
+
+.permissions-summary strong {
+    display: block;
+    color: var(--accent);
+    font-size: 25px
+}
+
+.permissions-summary span {
+    font-size: 12px;
+    color: var(--text-secondary)
+}
+
+.permissions-layout {
+    display: grid;
+    grid-template-columns:300px 1fr;
+    gap: 20px
+}
+
+.users-panel, .access-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px
+}
+
+.panel-heading, .access-toolbar, .selected-user {
+    display: flex;
+    align-items: center;
+    justify-content: space-between
+}
+
+.panel-heading h2, .selected-user h2, .access-toolbar h3 {
+    margin: 0
+}
+
+.panel-heading span {
+    background: var(--accent-glow);
+    color: var(--accent);
+    border-radius: 20px;
+    padding: 3px 9px;
+    font-size: 12px
+}
+
+.search-box {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 11px;
+    margin: 18px 0
+}
+
+.search-box input {
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    outline: 0;
+    width: 100%;
+    font-family: inherit
+}
+
+.user-list {
+    display: grid;
+    gap: 7px
+}
+
+.user-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    text-align: right;
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid transparent;
+    border-radius: 11px;
+    padding: 10px;
+    cursor: pointer
+}
+
+.user-row:hover, .user-row.selected {
+    background: var(--accent-glow);
+    border-color: rgba(16, 185, 129, .3)
+}
+
+.user-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--info));
+    color: #fff;
+    font-weight: 700
+}
+
+.user-avatar.large {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    margin-left: 12px
+}
+
+.user-info {
+    display: grid;
+    gap: 3px;
+    flex: 1
+}
+
+.user-info small, .permission-row small, .selected-user p {
+    color: var(--text-muted);
+    font-size: 11px
+}
+
+.user-chevron {
+    color: var(--text-muted);
+    font-size: 20px
+}
+
+.selected-user {
+    justify-content: flex-start;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border)
+}
+
+.role-chips {
+    display: flex;
+    gap: 6px;
+    margin-right: auto
+}
+
+.role-chips span {
+    font-size: 10px;
+    color: var(--purple);
+    background: rgba(167, 139, 250, .12);
+    border-radius: 20px;
+    padding: 5px 9px
+}
+
+.access-toolbar {
+    padding: 20px 0 16px
+}
+
+.saving-status {
+    font-size: 12px;
+    color: var(--accent)
+}
+
+.permission-group {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-top: 14px;
+    overflow: hidden
+}
+
+.permission-group h4 {
+    margin: 0;
+    padding: 12px 15px;
+    background: var(--table-header-bg);
+    font-size: 13px
+}
+
+.permission-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 15px;
+    border-top: 1px solid var(--border);
+    gap: 15px
+}
+
+.permission-row strong, .permission-row small {
+    display: block
+}
+
+.permission-actions {
+    display: flex;
+    gap: 6px;
+    direction: rtl
+}
+
+.permission-actions button {
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: 7px;
+    padding: 7px 11px;
+    font: inherit;
+    font-size: 11px;
+    cursor: pointer
+}
+
+.permission-actions button.active.allow {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff
+}
+
+.permission-actions button.active.deny {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #fff
+}
+
+.permission-actions button.active.inherit {
+    background: var(--info);
+    border-color: var(--info);
+    color: #fff
+}
+
+.permissions-loading {
+    text-align: center;
+    padding: 80px;
+    color: var(--text-secondary)
+}
+
+@media (max-width: 850px) {
+    .permissions-page {
+        padding: 16px
+    }
+
+    .permissions-layout {
+        grid-template-columns:1fr
+    }
+
+    .permissions-hero {
+        align-items: flex-start;
+        gap: 15px
+    }
+
+    .permissions-summary {
+        padding: 10px 15px
+    }
+
+    .permission-row {
+        align-items: flex-start;
+        flex-direction: column
+    }
+
+    .permission-actions {
+        width: 100%
+    }
+
+    .permission-actions button {
+        flex: 1
+    }
+}

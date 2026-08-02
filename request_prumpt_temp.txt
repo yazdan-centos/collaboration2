@@ -1,0 +1,4 @@
+in the src/main/java/com/mapnaom/ticketingplatform/bootstrap/DataInitializer.java file,
+ I want you to add the following code to the run method:
+    1. create managers omid and MapNet. Set their names to "Omid" and "MapNet" respectively.
+    2. allocate team members to the managers. Set the team members to "Nematollahian", "Shahghasempour", and "SMH Naji".

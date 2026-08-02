@@ -1,0 +1,583 @@
+.application-guide {
+  width: min(1500px, 100%);
+  margin: 0 auto;
+  padding: 28px;
+  color: var(--text-primary);
+  scroll-behavior: smooth;
+}
+
+.application-guide-hero {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  overflow: hidden;
+  padding: 34px;
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border));
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 12% 15%, var(--accent-glow), transparent 38%),
+    linear-gradient(135deg, var(--bg-card), var(--bg-secondary));
+  box-shadow: 0 18px 50px var(--shadow-color);
+}
+
+.application-guide-hero::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: auto -80px -110px auto;
+  width: 290px;
+  height: 290px;
+  border: 45px solid color-mix(in srgb, var(--accent) 8%, transparent);
+  border-radius: 50%;
+}
+
+.application-guide-hero-content {
+  max-width: 780px;
+}
+
+.application-guide-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 13px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.application-guide-hero h1 {
+  margin: 0 0 12px;
+  font-size: clamp(25px, 3vw, 38px);
+  line-height: 1.5;
+}
+
+.application-guide-hero p {
+  max-width: 720px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 2;
+}
+
+.application-guide-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 23px;
+}
+
+.application-guide-summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-primary) 40%, transparent);
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.application-guide-summary strong {
+  color: var(--accent);
+}
+
+.application-guide-hero-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 130px;
+  width: 130px;
+  height: 130px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-radius: 32px;
+  background: var(--accent-glow);
+  color: var(--accent);
+  font-size: 52px;
+  transform: rotate(-4deg);
+}
+
+.application-guide-nav {
+  position: sticky;
+  z-index: 8;
+  top: 78px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  margin: 18px 0 30px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg-secondary) 88%, transparent);
+  box-shadow: 0 10px 30px var(--shadow-color);
+  backdrop-filter: blur(14px);
+}
+
+.application-guide-nav span {
+  flex: 0 0 auto;
+  padding: 0 8px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.application-guide-nav a {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border-radius: 9px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.application-guide-nav a:hover {
+  color: var(--accent);
+  background: var(--accent-glow);
+}
+
+.application-guide-section {
+  scroll-margin-top: 145px;
+  margin-bottom: 42px;
+}
+
+.application-guide-section-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.application-guide-section-number {
+  display: grid;
+  place-items: center;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-radius: 12px;
+  background: var(--accent-glow);
+  color: var(--accent);
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.application-guide-section-heading span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.application-guide-section-heading h2 {
+  margin: 0;
+  font-size: 21px;
+}
+
+.application-guide-section-heading p {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.application-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 15px;
+}
+
+.application-guide-card {
+  --guide-tone: var(--accent);
+  display: flex;
+  min-width: 0;
+  min-height: 245px;
+  flex-direction: column;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 17px;
+  background: var(--bg-card);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--shadow-color) 75%, transparent);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.application-guide-card:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--guide-tone) 45%, var(--border));
+  box-shadow: 0 16px 38px var(--shadow-color);
+}
+
+.application-guide-card.tone-cyan {
+  --guide-tone: var(--info);
+}
+
+.application-guide-card.tone-purple {
+  --guide-tone: var(--purple);
+}
+
+.application-guide-card.tone-amber {
+  --guide-tone: var(--warning);
+}
+
+.application-guide-card.tone-blue {
+  --guide-tone: #3b82f6;
+}
+
+.application-guide-card.tone-red {
+  --guide-tone: var(--danger);
+}
+
+.application-guide-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border);
+}
+
+.application-guide-card-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--guide-tone) 12%, transparent);
+  color: var(--guide-tone);
+  font-size: 17px;
+}
+
+.application-guide-card h3 {
+  margin: 0 0 3px;
+  font-size: 15px;
+}
+
+.application-guide-path {
+  display: block;
+  color: var(--text-muted);
+  font-family: 'IRANSansMonoSpacedNum', monospace;
+  font-size: 9px;
+  text-align: right;
+}
+
+.application-guide-card > p {
+  margin: 16px 0 20px;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  line-height: 1.9;
+}
+
+.application-guide-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+  padding: 11px 13px;
+  border: 1px solid color-mix(in srgb, var(--guide-tone) 30%, var(--border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--guide-tone) 8%, transparent);
+  color: var(--guide-tone);
+  font-size: 11px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.application-guide-link:hover {
+  background: var(--guide-tone);
+  color: #fff;
+}
+
+.application-guide-link i {
+  transition: transform 0.2s ease;
+}
+
+.application-guide-link:hover i {
+  transform: translateX(-3px);
+}
+
+.application-guide-reference-block {
+  margin-top: 16px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 17px;
+  background: var(--bg-card);
+}
+
+.application-guide-reference-block + .application-guide-reference-block {
+  margin-top: 15px;
+}
+
+.application-guide-reference-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.application-guide-reference-heading span {
+  color: var(--accent);
+  font-family: 'IRANSansMonoSpacedNum', monospace;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.application-guide-reference-heading h3 {
+  margin: 3px 0 0;
+  font-size: 15px;
+}
+
+.application-guide-reference-heading a {
+  padding: 8px 11px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  border-radius: 9px;
+  background: var(--accent-glow);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.application-guide-role-grid,
+.application-guide-types-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.application-guide-role-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.application-guide-types-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.application-guide-role-card,
+.application-guide-type-card {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--bg-secondary) 55%, transparent);
+}
+
+.application-guide-role-card > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.application-guide-role-card > div:first-child span {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.application-guide-role-card code,
+.application-guide-type-card code {
+  color: var(--accent);
+  font-family: 'IRANSansMonoSpacedNum', monospace;
+  font-size: 9px;
+}
+
+.application-guide-role-card p,
+.application-guide-type-card > p {
+  margin: 12px 0;
+  color: var(--text-secondary);
+  font-size: 10.5px;
+  line-height: 1.9;
+}
+
+.application-guide-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.application-guide-role-card .application-guide-values code {
+  padding: 6px 8px;
+  border-radius: 7px;
+  background: var(--accent-glow);
+  overflow-wrap: anywhere;
+}
+
+.application-guide-type-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.application-guide-type-heading > i {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--accent-glow);
+  color: var(--accent);
+}
+
+.application-guide-type-heading h4 {
+  margin: 0 0 2px;
+  font-size: 13px;
+}
+
+.application-guide-type-card .application-guide-values span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 9px;
+}
+
+.application-guide-note {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  border: 1px solid color-mix(in srgb, var(--info) 30%, var(--border));
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--info) 7%, var(--bg-card));
+}
+
+.application-guide-note > i {
+  color: var(--info);
+  font-size: 22px;
+}
+
+.application-guide-note strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.application-guide-note p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.8;
+}
+
+.application-guide-note a {
+  padding: 9px 12px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--info) 12%, transparent);
+  color: var(--info);
+  font-size: 10px;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.application-guide-value {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.application-guide-value-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.application-guide-value-label {
+  font-weight: 600;
+}
+
+.application-guide-value-def {
+  color: var(--muted, #64748b);
+  line-height: 1.6;
+}
+
+@media (max-width: 1120px) {
+  .application-guide-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .application-guide-role-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .application-guide {
+    padding: 16px;
+  }
+
+  .application-guide-hero {
+    padding: 24px 20px;
+  }
+
+  .application-guide-hero-icon {
+    display: none;
+  }
+
+  .application-guide-nav {
+    top: 68px;
+  }
+
+  .application-guide-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .application-guide-types-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .application-guide-card {
+    min-height: auto;
+  }
+
+  .application-guide-reference-block {
+    padding: 15px;
+  }
+
+  .application-guide-note {
+    grid-template-columns: auto 1fr;
+  }
+
+  .application-guide-note a {
+    grid-column: 1 / -1;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .application-guide-hero h1 {
+    font-size: 23px;
+  }
+
+  .application-guide-summary {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .application-guide-summary span {
+    justify-content: center;
+  }
+
+  .application-guide-section-heading {
+    align-items: center;
+  }
+  .application-guide-section-heading h2 {
+    margin: 0;
+  }
+
+  .application-guide-section-heading > i {
+    font-size: 20px;
+  }
+
+
+}
+
