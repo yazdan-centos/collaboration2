@@ -15,6 +15,7 @@ function getLoginError(error) {
 export default function Login() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const { isAuthenticated, login, auth } = useAuth();
@@ -77,12 +78,13 @@ export default function Login() {
             </div>
           </label>
 
-          <label className="block">
-            <span className="mb-2 block text-sm font-semibold text-slate-300">رمز عبور</span>
+          <div className="block">
+            <label htmlFor="login-password" className="mb-2 block text-sm font-semibold text-slate-300">رمز عبور</label>
             <div className="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-950/60 px-4 transition focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/10">
               <i className="fas fa-lock text-sm text-slate-500" aria-hidden="true" />
               <input
-                type="password"
+                id="login-password"
+                type={showPassword ? 'text' : 'password'}
                 className="h-12 w-full bg-transparent text-sm text-slate-100 outline-none placeholder:text-slate-600"
                 autoComplete="current-password"
                 value={password}
@@ -90,8 +92,19 @@ export default function Login() {
                 placeholder="رمز عبور"
                 disabled={isLoading}
               />
+              <button
+                type="button"
+                className="flex h-9 w-9 shrink-0 items-center justify-center text-slate-500 transition hover:text-emerald-400 focus:outline-none focus:text-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => setShowPassword((visible) => !visible)}
+                aria-label={showPassword ? 'پنهان کردن رمز عبور' : 'نمایش رمز عبور'}
+                aria-pressed={showPassword}
+                title={showPassword ? 'پنهان کردن رمز عبور' : 'نمایش رمز عبور'}
+                disabled={isLoading}
+              >
+                <i className={showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'} aria-hidden="true" />
+              </button>
             </div>
-          </label>
+          </div>
 
           {error && (
             <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">

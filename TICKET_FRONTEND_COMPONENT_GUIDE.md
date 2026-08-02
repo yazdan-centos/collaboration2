@@ -220,16 +220,23 @@ export const nextTicketStatuses = Object.freeze({
 });
 ```
 
-An assigned expert sends only the status fields from the edit form:
+An assigned expert normally sends only the status fields from the edit form. When
+returning an assigned ticket to `UNALLOCATED`, include `assignedMemberId: null`
+so the stale assignment is cleared atomically with the status change:
 
 ```js
 const expertStatusUpdate = {
   status: selectedStatus,
   statusNote: note.trim() || null,
+  ...(selectedStatus === "UNALLOCATED" && ticket.assignedMemberId
+    ? { assignedMemberId: null }
+    : {}),
 };
 ```
 
-Do not include `title`, `description`, `slaContractId`, `assignedMemberId`, `priority`, or scope fields in an expert update request.
+Do not include `title`, `description`, `slaContractId`, `assignedMemberId`,
+`priority`, or scope fields in an expert update request, except for the explicit
+`assignedMemberId: null` required by the `UNALLOCATED` transition above.
 
 ### Ticket Message
 

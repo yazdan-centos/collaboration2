@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 const AUTH_STORAGE_KEY = 'auth';
 const AuthContext = createContext(null);
@@ -47,12 +47,12 @@ function normalizeSession(loginResponse) {
   );
   const resolvedRoles = Array.isArray(loginResponse?.roles)
     ? loginResponse.roles
-    : (loginResponse?.role ? [loginResponse.role] : []);
+    : (Array.isArray(currentUser?.roles) ? currentUser.roles : (loginResponse?.role ? [loginResponse.role] : []));
 
   return {
     ...loginResponse,
     roles: resolvedRoles,
-    permissions: loginResponse?.permissions || [],
+    permissions: loginResponse?.permissions || currentUser?.permissions || [],
     userId,
     customerId: customerId ?? userId,
   };
@@ -70,6 +70,7 @@ function readStoredAuth() {
 
 export function AuthProvider({ children }) {
   const [auth, setAuth] = useState(readStoredAuth);
+  const refreshedToken = useRef(null);
 
   const login = useCallback((loginResponse) => {
     if (!loginResponse?.accessToken) {
@@ -91,6 +92,35 @@ export function AuthProvider({ children }) {
     window.addEventListener('auth:expired', logout);
     return () => window.removeEventListener('auth:expired', logout);
   }, [logout]);
+
+  useEffect(() => {
+    if (!auth?.accessToken || refreshedToken.current === auth.accessToken) return;
+    refreshedToken.current = auth.accessToken;
+    const controller = new AbortController();
+    fetch(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080'}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${auth.accessToken}` },
+      signal: controller.signal,
+    }).then((response) => {
+      if (!response.ok) throw new Error('Unable to refresh the current user');
+      return response.json();
+    }).then((profile) => {
+      setAuth((current) => {
+        if (!current || current.accessToken !== auth.accessToken) return current;
+        const refreshed = normalizeSession({
+          ...current,
+          currentUser: profile,
+          userId: profile.id,
+          roles: profile.roles || current.roles,
+          permissions: profile.permissions || [],
+        });
+        sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(refreshed));
+        return refreshed;
+      });
+    }).catch((error) => {
+      if (error.name !== 'AbortError') refreshedToken.current = null;
+    });
+    return () => controller.abort();
+  }, [auth?.accessToken]);
 
   const value = useMemo(() => ({
     auth,

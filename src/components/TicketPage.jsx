@@ -12,7 +12,6 @@ const { page, pageData, visibleStart, visibleEnd, resetPage, goPrev, goNext, set
   usePagination(PAGE_SIZE);
 
 const columns = [
-  { key: 'id', header: 'شناسه', cellClassName: 'task-id fa-num', render: (t) => `#${t.id}` },
   {
     key: 'title',
     header: 'عنوان',
@@ -25,7 +24,6 @@ const columns = [
   },
   { key: 'status', header: 'وضعیت', render: (t) => renderStatus(t) },
   { key: 'priority', header: 'اولویت', hidden: !showTriage, render: renderPriority },
-  { key: 'scope', header: 'محدوده', hidden: !showTriage, render: renderScope },
   { key: 'customer', header: 'مشتری', hidden: !showManagement, render: renderCustomer },
   { key: 'assignee', header: 'مسئول', hidden: !showManagement, render: renderAssignee },
   { key: 'actions', header: 'عملیات', hidden: !showManagement, render: renderActions },

@@ -45,10 +45,13 @@ const ErrorIcon = () => (
 export default function EmbeddedChat({
   ticketId,
   title = 'گفتگوی تیکت',
+  subtitle,
+  avatar,
   height = '560px',
   className = '',
   onMessageCreated,
   canSend = true,
+  variant = 'default',
 }) {
   const { currentUser, role, roles } = useAuth();
 
@@ -60,6 +63,7 @@ export default function EmbeddedChat({
   const [isSending, setIsSending] = useState(false);
   const scrollAnchorRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const isWhatsApp = variant === 'whatsapp';
 
   const currentUserId = currentUser?.id ?? currentUser?.userId ?? null;
   const currentUserName = typeof currentUser === 'string'
@@ -127,28 +131,38 @@ export default function EmbeddedChat({
 
   return (
     <div
-      className={`flex flex-col overflow-hidden rounded-2xl ${className}`}
-      style={{ height, background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+      className={`flex flex-col overflow-hidden ${isWhatsApp ? 'ticket-chat-whatsapp-thread' : 'rounded-2xl'} ${className}`}
+      style={isWhatsApp
+        ? { height }
+        : { height, background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-4 py-3"
-        style={{ borderBottom: '1px solid var(--border)', background: 'var(--header-bg)' }}
+        className={isWhatsApp
+          ? 'ticket-chat-whatsapp-header'
+          : 'flex items-center justify-between px-4 py-3'}
+        style={isWhatsApp ? undefined : { borderBottom: '1px solid var(--border)', background: 'var(--header-bg)' }}
       >
-        <div>
-          <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-            {title}
-          </h3>
-          {ticketId && (
-            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-              تیکت #{ticketId}
-            </p>
-          )}
+        <div className={isWhatsApp ? 'ticket-chat-whatsapp-contact' : ''}>
+          {isWhatsApp && avatar && <img src={avatar} alt="" />}
+          <div>
+            <h3 className={isWhatsApp ? '' : 'text-sm font-bold'} style={isWhatsApp ? undefined : { color: 'var(--text-primary)' }}>
+              {title}
+            </h3>
+            {ticketId && (
+              <p className={isWhatsApp ? '' : 'text-[11px]'} style={isWhatsApp ? undefined : { color: 'var(--text-muted)' }}>
+                {subtitle || `تیکت #${ticketId}`}
+              </p>
+            )}
+          </div>
         </div>
+        {isWhatsApp && <div className="ticket-chat-whatsapp-actions"><i className="fas fa-search" /><i className="fas fa-ellipsis-v" /></div>}
       </div>
 
       {/* Body */}
-      <div ref={messagesContainerRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+      <div ref={messagesContainerRef} className={isWhatsApp
+        ? 'ticket-chat-whatsapp-messages'
+        : 'flex-1 space-y-3 overflow-y-auto px-4 py-4'}>
         {isLoading && <LoadingState />}
 
         {!isLoading && loadError && <ErrorState message={loadError} onRetry={() => loadMessages()} />}
@@ -161,6 +175,7 @@ export default function EmbeddedChat({
             <MessageBubble
               key={message.id}
               message={message}
+              variant={variant}
               isOwnMessage={(currentUserId != null && String(message.senderId) === String(currentUserId))
                 || (!currentUserId && currentUserName && message.senderName === currentUserName)}
             />
@@ -181,6 +196,7 @@ export default function EmbeddedChat({
         onSubmit={handleSend}
         isSending={isSending}
         disabled={!ticketId || isLoading || !!loadError}
+        variant={variant}
       /> : <div className="ticket-detail-readonly-note">ارسال پیام برای این تیکت در دسترس شما نیست.</div>}
     </div>
   );

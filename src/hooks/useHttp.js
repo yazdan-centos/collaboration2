@@ -9,10 +9,8 @@ const http = axios.create({
 
 http.interceptors.request.use((config) => {
   const token = getStoredAccessToken();
-  if (token) {
+  if (token && !config.headers?.Authorization) {
     config.headers.Authorization = `Bearer ${token}`;
-  } else if (config.headers?.Authorization) {
-    delete config.headers.Authorization;
   }
   return config;
 });

@@ -19,7 +19,7 @@ const MAX_LENGTH = 2000;
  * submits on Enter (Shift+Enter for newline), and disables itself
  * while a send is in flight.
  */
-export default function ChatInput({ value, onChange, onSubmit, isSending, disabled }) {
+export default function ChatInput({ value, onChange, onSubmit, isSending, disabled, variant = 'default' }) {
   const textareaRef = useRef(null);
 
   const handleInput = (e) => {
@@ -46,12 +46,15 @@ export default function ChatInput({ value, onChange, onSubmit, isSending, disabl
   };
 
   const isDisabled = disabled || isSending;
+  const isWhatsApp = variant === 'whatsapp';
 
   return (
     <div
-      className="flex items-end gap-2 p-3"
-      style={{ borderTop: '1px solid var(--border)', background: 'var(--bg-secondary)' }}
+      className={isWhatsApp ? 'ticket-chat-whatsapp-input' : 'flex items-end gap-2 p-3'}
+      style={isWhatsApp ? undefined : { borderTop: '1px solid var(--border)', background: 'var(--bg-secondary)' }}
     >
+      {isWhatsApp && <button type="button" className="ticket-chat-whatsapp-tool" aria-label="شکلک"><i className="far fa-smile" /></button>}
+      {isWhatsApp && <button type="button" className="ticket-chat-whatsapp-tool" aria-label="پیوست"><i className="fas fa-paperclip" /></button>}
       <textarea
         ref={textareaRef}
         value={value}
@@ -61,8 +64,10 @@ export default function ChatInput({ value, onChange, onSubmit, isSending, disabl
         rows={1}
         maxLength={MAX_LENGTH}
         placeholder="پیام خود را بنویسید..."
-        className="max-h-[120px] min-h-[40px] flex-1 resize-none rounded-xl px-3.5 py-2.5 text-sm outline-none transition-colors disabled:opacity-60"
-        style={{
+        className={isWhatsApp
+          ? 'ticket-chat-whatsapp-textarea'
+          : 'max-h-[120px] min-h-[40px] flex-1 resize-none rounded-xl px-3.5 py-2.5 text-sm outline-none transition-colors disabled:opacity-60'}
+        style={isWhatsApp ? undefined : {
           background: 'var(--bg-card)',
           border: '1px solid var(--border)',
           color: 'var(--text-primary)',
@@ -74,8 +79,10 @@ export default function ChatInput({ value, onChange, onSubmit, isSending, disabl
         onClick={handleSubmit}
         disabled={isDisabled || !value.trim()}
         aria-label="Send message"
-        className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl transition-transform disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:scale-105 enabled:active:scale-95"
-        style={{ background: 'var(--accent)', color: '#ffffff' }}
+        className={isWhatsApp
+          ? 'ticket-chat-whatsapp-send'
+          : 'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl transition-transform disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:scale-105 enabled:active:scale-95'}
+        style={isWhatsApp ? undefined : { background: 'var(--accent)', color: '#ffffff' }}
       >
         {isSending ? (
           <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">

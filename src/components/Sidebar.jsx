@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getVisibleNavigation } from '../utils/authorization';
+import applicationLogo from '../assets/img/LOGO.png';
 
 // سایدبار
 export default function Sidebar({ isOpen, onNavigate }) {
@@ -15,15 +16,7 @@ export default function Sidebar({ isOpen, onNavigate }) {
   return (
     <aside className={`sidebar${isOpen ? ' open' : ''}`} id="sidebar">
       <div className="sidebar-logo">
-        <div className="logo-icon">
-          <i className="fas fa-bolt"></i>
-        </div>
-        <div>
-          <div className="logo-text">
-           مدیریت تیکت‌های پشتیبانی
-            </div>
-          <div className="logo-sub">پنل مدیریت پروژه</div>
-        </div>
+        <img src={applicationLogo} alt="گروه مپنا" className="application-logo" />
       </div>
 
       <nav className="sidebar-nav">
