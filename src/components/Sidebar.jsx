@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getVisibleNavigation } from '../utils/authorization';
-import applicationLogo from '../assets/img/LOGO.png';
+import applicationLogo from '../assets/img/Logo.png';
 
 // سایدبار
 export default function Sidebar({ isOpen, onNavigate }) {
