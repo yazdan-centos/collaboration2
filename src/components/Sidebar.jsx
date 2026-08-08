@@ -2,11 +2,12 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getVisibleNavigation } from '../utils/authorization';
-import applicationLogo from '../assets/img/LOGO.png';
+import applicationLogo from '../assets/img/logo.png';
 
 // سایدبار
 export default function Sidebar({ isOpen, onNavigate }) {
   const { auth, currentUser, role, logout } = useAuth();
+  const logoSource = applicationLogo || null;
   const displayName = typeof currentUser === 'string'
     ? currentUser
     : currentUser?.name || currentUser?.username || 'کاربر';
@@ -16,8 +17,8 @@ export default function Sidebar({ isOpen, onNavigate }) {
   return (
     <aside className={`sidebar${isOpen ? ' open' : ''}`} id="sidebar">
       <div className="sidebar-logo">
-        {applicationLogo ? (
-          <img src={applicationLogo} alt="گروه مپنا" className="application-logo" />
+        {logoSource ? (
+          <img src={logoSource} alt="گروه مپنا" className="application-logo" />
         ) : (
           <span className="application-logo-fallback">گروه مپنا</span>
         )}
