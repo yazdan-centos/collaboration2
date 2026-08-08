@@ -3,7 +3,7 @@ import { getStoredAccessToken } from '../context/AuthContext';
 import { normalizeApiError } from '../utils/apiError';
 
 const http = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080',
+  baseURL: process.env.REACT_APP_API_BASE_URL || 'http://155.117.13.33:80',
   timeout: 15000,
 });
 
